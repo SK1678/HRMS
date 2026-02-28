@@ -79,6 +79,23 @@ def _parse_date(raw):
     return None  # unparseable
 
 
+def _parse_str(raw):
+    """
+    Safely convert Excel values (like floats from numeric cells) to string,
+    removing .0 suffixes for phone numbers/IDs.
+    """
+    if raw is None or raw == '':
+        return ''
+    if isinstance(raw, float):
+        if raw.is_integer():
+            raw = int(raw)
+    result = str(raw).strip()
+    # Pro fix: Auto-prepend '0' to BD phone numbers if Excel stripped the leading zero (10-digits starting with '1')
+    if len(result) == 10 and result.startswith('1'):
+        result = '0' + result
+    return result
+
+
 _GENDER_MAP = {
     'male': 'male',
     'female': 'female',
@@ -106,6 +123,7 @@ COLUMN_MAP = {
     'Work Email':            ('work_email', 'char'),
     'Work Mobile':           ('mobile_phone', 'char'),
     'Work Phone Number':     ('work_phone', 'char'),
+    'Personal Phone':        ('private_phone', 'char'),
     'Private Email':         ('private_email', 'char'),
     'Permanent Address':     ('permanent_address', 'char'),
     'Present Address':       ('present_address', 'char'),
@@ -555,13 +573,13 @@ class EmployeeBulkUploadWizard(models.TransientModel):
         # ------------------------------------------------------------------
         # Extract raw values
         # ------------------------------------------------------------------
-        company_name = str(get('Business Unit') or '').strip()
-        emp_name = str(get('Employee Name') or '').strip()
-        emp_id_no = str(get('Employee ID') or '').strip()
-        device_id = str(get('Device ID') or '').strip()
-        work_email = str(get('Work Email') or '').strip()
-        dept_name = str(get('Department') or '').strip()
-        job_name = str(get('Designation') or '').strip()
+        company_name = _parse_str(get('Business Unit'))
+        emp_name = _parse_str(get('Employee Name'))
+        emp_id_no = _parse_str(get('Employee ID'))
+        device_id = _parse_str(get('Device ID'))
+        work_email = _parse_str(get('Work Email'))
+        dept_name = _parse_str(get('Department'))
+        job_name = _parse_str(get('Designation'))
 
         # ------------------------------------------------------------------
         # Required field checks
@@ -578,25 +596,25 @@ class EmployeeBulkUploadWizard(models.TransientModel):
             errors.append('Work Email is required.')
 
         # Additional required fields
-        if not str(get('Permanent Address') or '').strip():
+        if not _parse_str(get('Permanent Address')):
             errors.append('Permanent Address is required.')
-        if not str(get('Present Address') or '').strip():
+        if not _parse_str(get('Present Address')):
             errors.append('Present Address is required.')
         if not get('Date of Birth'):
             errors.append('Date of Birth is required.')
-        if not str(get('Gender') or '').strip():
+        if not _parse_str(get('Gender')):
             errors.append('Gender is required.')
-        if not str(get('Religion') or '').strip():
+        if not _parse_str(get('Religion')):
             errors.append('Religion is required.')
-        if not str(get('NID No') or '').strip():
+        if not _parse_str(get('NID No')):
             errors.append('NID No is required.')
-        if not str(get('Place of Birth') or '').strip():
+        if not _parse_str(get('Place of Birth')):
             errors.append('Place of Birth is required.')
-        if not str(get('Nationality (Country)') or '').strip():
+        if not _parse_str(get('Nationality (Country)')):
             errors.append('Nationality (Country) is required.')
-        if not str(get('Employee Type') or '').strip():
+        if not _parse_str(get('Employee Type')):
             errors.append('Employee Type is required.')
-        if not str(get('Employment Type') or '').strip():
+        if not _parse_str(get('Employment Type')):
             errors.append('Employment Type is required.')
 
         # ------------------------------------------------------------------
@@ -747,13 +765,13 @@ class EmployeeBulkUploadWizard(models.TransientModel):
         def get(label):
             return row_data.get(label)
 
-        company_name = str(get('Business Unit') or '').strip()
-        emp_name = str(get('Employee Name') or '').strip()
-        emp_id_no = str(get('Employee ID') or '').strip()
-        device_id = str(get('Device ID') or '').strip()
-        work_email = str(get('Work Email') or '').strip()
-        dept_name = str(get('Department') or '').strip()
-        job_name = str(get('Designation') or '').strip()
+        company_name = _parse_str(get('Business Unit'))
+        emp_name = _parse_str(get('Employee Name'))
+        emp_id_no = _parse_str(get('Employee ID'))
+        device_id = _parse_str(get('Device ID'))
+        work_email = _parse_str(get('Work Email'))
+        dept_name = _parse_str(get('Department'))
+        job_name = _parse_str(get('Designation'))
 
         # Resolve company
         company = env['res.company'].sudo().search(
@@ -786,19 +804,13 @@ class EmployeeBulkUploadWizard(models.TransientModel):
             job_id = job.id if job else False
 
         # Resolve many2one employees (supervisor / dotted-supervisor / line-manager)
-        supervisor_id = self._resolve_employee_ref(
-            str(get('Supervisor') or '').strip()
-        )
-        dotted_supervisor_id = self._resolve_employee_ref(
-            str(get('Dotted Supervisor') or '').strip()
-        )
-        parent_id = self._resolve_employee_ref(
-            str(get('Line Manager') or '').strip()
-        )
+        supervisor_id = self._resolve_employee_ref(_parse_str(get('Supervisor')))
+        dotted_supervisor_id = self._resolve_employee_ref(_parse_str(get('Dotted Supervisor')))
+        parent_id = self._resolve_employee_ref(_parse_str(get('Line Manager')))
 
         # Religion
         religion_id = False
-        religion_name = str(get('Religion') or '').strip()
+        religion_name = _parse_str(get('Religion'))
         if religion_name:
             religion = env['hr.religion'].sudo().search(
                 [('name', '=ilike', religion_name)], limit=1
@@ -809,7 +821,7 @@ class EmployeeBulkUploadWizard(models.TransientModel):
 
         # Blood Group
         blood_group_id = False
-        blood_group_name = str(get('Blood Group') or '').strip()
+        blood_group_name = _parse_str(get('Blood Group'))
         if blood_group_name:
             bg = env['hr.blood.group'].sudo().search(
                 [('name', '=ilike', blood_group_name)], limit=1
@@ -820,7 +832,7 @@ class EmployeeBulkUploadWizard(models.TransientModel):
 
         # Nationality (Country)
         country_id = False
-        country_name = str(get('Nationality (Country)') or '').strip()
+        country_name = _parse_str(get('Nationality (Country)'))
         if country_name:
             country = env['res.country'].sudo().search(
                 [('name', '=ilike', country_name)], limit=1
@@ -833,11 +845,11 @@ class EmployeeBulkUploadWizard(models.TransientModel):
         birthday = _parse_date(get('Date of Birth'))
 
         # Gender
-        gender_raw = str(get('Gender') or '').strip().lower()
+        gender_raw = _parse_str(get('Gender')).lower()
         gender = _GENDER_MAP.get(gender_raw, False)
 
         # Employee Type (Selection)
-        emp_type_raw = str(get('Employee Type') or '').strip()
+        emp_type_raw = _parse_str(get('Employee Type'))
         final_emp_type = False
         if emp_type_raw:
             try:
@@ -858,7 +870,7 @@ class EmployeeBulkUploadWizard(models.TransientModel):
                 final_emp_type = emp_type_raw.lower() # Fallback
 
         # Contract Type / Employment Type
-        contract_type_name = str(get('Employment Type') or '').strip()
+        contract_type_name = _parse_str(get('Employment Type'))
         contract_type_id = False
         if contract_type_name:
             ct = env['hr.contract.type'].sudo().search([('name', '=ilike', contract_type_name)], limit=1)
@@ -873,14 +885,14 @@ class EmployeeBulkUploadWizard(models.TransientModel):
             'employee_id_no': emp_id_no,
             'device_user_id': device_id,
             'work_email': work_email,
-            'work_phone': str(get('Work Phone Number') or '').strip() or False,
-            'mobile_phone': str(get('Work Mobile') or '').strip() or False,
-            'identification_id': str(get('NID No') or '').strip() or False,
+            'work_phone': _parse_str(get('Work Phone Number')) or False,
+            'mobile_phone': _parse_str(get('Work Mobile')) or False,
+            'identification_id': _parse_str(get('NID No')) or False,
             'employee_type': final_emp_type or False,
             'contract_type_id': contract_type_id or False,
-            'personal_email': str(get('Personal Email') or '').strip() or False,
-            'private_email': str(get('Private Email') or '').strip() or False,
-            'private_phone': str(get('Phone') or '').strip() or False,
+            'personal_email': _parse_str(get('Personal Email')) or False,
+            'private_email': _parse_str(get('Private Email')) or False,
+            'private_phone': _parse_str(get('Personal Phone')) or False,
             'permanent_address': str(get('Permanent Address') or '').strip() or False,
             'present_address': str(get('Present Address') or '').strip() or False,
             'department_id': dept_id,
@@ -892,8 +904,8 @@ class EmployeeBulkUploadWizard(models.TransientModel):
             'blood_group_id': blood_group_id or False,
             'birthday': birthday or False,
             'sex': gender or False,
-            'tin_number': str(get('TIN Number') or '').strip() or False,
-            'place_of_birth': str(get('Place of Birth') or '').strip() or False,
+            'tin_number': _parse_str(get('TIN Number')) or False,
+            'place_of_birth': _parse_str(get('Place of Birth')) or False,
             'country_id': country_id or False,
             'hr_responsible_id': env.user.id,  # Always set to the uploader
         }
@@ -908,11 +920,21 @@ class EmployeeBulkUploadWizard(models.TransientModel):
         # Create employee
         try:
             employee = env['hr.employee'].sudo().create(employee_vals)
+            # Pro trick: explicitly write phone fields after creation to bypass any compute/inverse race conditions that wipe them
+            phone_vals = {}
+            if employee_vals.get('work_phone'):
+                phone_vals['work_phone'] = employee_vals.get('work_phone')
+            if employee_vals.get('mobile_phone'):
+                phone_vals['mobile_phone'] = employee_vals.get('mobile_phone')
+            if employee_vals.get('private_phone'):
+                phone_vals['private_phone'] = employee_vals.get('private_phone')
+            if phone_vals:
+                employee.sudo().write(phone_vals)
         except Exception as exc:
             return {'error': f'Failed to create employee: {exc}'}
 
         # --------------- Create Bank Accounts ---------------
-        bank_accounts_str = str(get('Bank Accounts') or '').strip()
+        bank_accounts_str = _parse_str(get('Bank Accounts'))
         if bank_accounts_str:
             bank_acc_list = [b.strip() for b in bank_accounts_str.split(',') if b.strip()]
             for acc_number in bank_acc_list:
