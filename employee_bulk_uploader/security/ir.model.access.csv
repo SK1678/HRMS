@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_employee_bulk_upload_wizard,employee.bulk.upload.wizard base hr manager,model_employee_bulk_upload_wizard,hr.group_hr_manager,1,1,1,1
+access_employee_bulk_upload_line,employee.bulk.upload.line base hr manager,model_employee_bulk_upload_line,hr.group_hr_manager,1,1,1,1
+access_employee_bulk_import_log_manager,employee.bulk.import.log base hr manager,model_employee_bulk_import_log,hr.group_hr_manager,1,1,1,1
+access_employee_bulk_import_log_user,employee.bulk.import.log base hr user,model_employee_bulk_import_log,hr.group_hr_user,1,0,0,0

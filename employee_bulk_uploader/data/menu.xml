@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Menu Action to Trigger the Wizard -->
+    <menuitem id="menu_employee_bulk_upload"
+              name="Bulk Upload"
+              parent="hr.menu_hr_employee_payroll"
+              action="action_employee_bulk_upload"
+              groups="hr.group_hr_manager"
+              sequence="90"/>
+
+    <!-- Menu Action for the Import Logs -->
+    <menuitem id="menu_employee_bulk_import_log"
+              name="Employee Import Logs"
+              parent="hr.menu_hr_employee_payroll"
+              action="action_employee_bulk_import_log"
+              groups="hr.group_hr_user"
+              sequence="91"/>
+</odoo>

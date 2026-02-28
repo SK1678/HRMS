@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <!-- Wizard Action -->
+        <record id="action_employee_bulk_upload" model="ir.actions.act_window">
+            <field name="name">Bulk Upload</field>
+            <field name="res_model">employee.bulk.upload.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+
+        <!-- Wizard Form View -->
+        <record id="view_employee_bulk_upload_wizard_form" model="ir.ui.view">
+            <field name="name">employee.bulk.upload.wizard.form</field>
+            <field name="model">employee.bulk.upload.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Bulk Upload">
+                    <header>
+                        <button name="action_validate" 
+                                string="Validate File" 
+                                type="object" 
+                                class="btn-primary" 
+                                invisible="state != 'draft'"/>
+                        
+                        <button name="action_confirm_import" 
+                                string="Confirm Import" 
+                                type="object" 
+                                class="btn-success" 
+                                invisible="state != 'preview' or (stop_on_error and has_errors)"/>
+
+                        <button name="action_download_template" 
+                                string="Download Template" 
+                                type="object" 
+                                class="btn-secondary" 
+                                invisible="state != 'draft'"/>
+                        
+                        <field name="state" widget="statusbar"/>
+                    </header>
+
+                    <sheet>
+                        <div class="oe_title" invisible="state == 'draft'">
+                            <h1><field name="import_summary" readonly="1" nolabel="1"/></h1>
+                        </div>
+
+                        <group>
+                            <group invisible="state != 'draft'">
+                                <field name="file" filename="filename"/>
+                                <field name="filename" invisible="1"/>
+                            </group>
+                            
+                            <group invisible="state != 'draft'">
+                                <field name="create_missing_departments"/>
+                                <field name="create_missing_jobs"/>
+                                <field name="stop_on_error"/>
+                            </group>
+                        </group>
+
+                        <notebook invisible="state == 'draft'">
+                            <page string="Preview / Validation" name="preview" invisible="state == 'done'">
+                                <h3 class="text-danger" invisible="not has_errors">
+                                    Validation errors found.
+                                    <span invisible="not stop_on_error">Please fix them before importing, or uncheck 'Stop on First Error' to import the valid rows.</span>
+                                </h3>
+                                <field name="has_errors" invisible="1"/>
+
+                                <field name="line_ids" nolabel="1">
+                                    <list decoration-danger="not is_valid" decoration-success="is_valid">
+                                        <field name="row_no"/>
+                                        <field name="is_valid"/>
+                                        <field name="employee_id_no"/>
+                                        <field name="device_user_id"/>
+                                        <field name="name"/>
+                                        <field name="work_email"/>
+                                        <field name="company"/>
+                                        <field name="department"/>
+                                        <field name="job"/>
+                                        <field name="error_text" invisible="1"/>
+                                        <button icon="fa-exclamation-triangle" 
+                                                title="Has Error" 
+                                                invisible="is_valid" 
+                                                type="object" 
+                                                name="action_show_error" 
+                                                class="oe_stat_button"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Import Results" name="results" invisible="state != 'done'">
+                                <group>
+                                    <field name="import_log_id"/>
+                                    <field name="output_file" filename="output_filename" invisible="1"/>
+                                    <field name="output_filename" invisible="1"/>
+                                    <field name="error_file" filename="error_filename" invisible="1"/>
+                                    <field name="error_filename" invisible="1"/>
+                                </group>
+                                
+                                <div class="alert alert-success" role="alert" invisible="not output_file">
+                                    Import successful! Download the accounts and passwords below.
+                                </div>
+                                
+                                <div class="alert alert-danger" role="alert" invisible="not error_file">
+                                    Some rows failed to import. See the results table below or download the error report.
+                                </div>
+                                
+                                <field name="line_ids" nolabel="1" readonly="1">
+                                    <list decoration-danger="import_status == 'failed'" decoration-success="import_status == 'success'" decoration-muted="import_status == 'pending'">
+                                        <field name="row_no"/>
+                                        <field name="employee_id_no"/>
+                                        <field name="name"/>
+                                        <field name="import_status" widget="badge" 
+                                               decoration-danger="import_status == 'failed'" 
+                                               decoration-success="import_status == 'success'"
+                                               decoration-muted="import_status == 'pending'"/>
+                                        <field name="error_text"/>
+                                    </list>
+                                </field>
+
+                                <div class="mt-3">
+                                    <button name="action_download_output" 
+                                            string="Download Accounts &amp; Passwords Excel" 
+                                            type="object" 
+                                            icon="fa-download" 
+                                            class="btn-primary" 
+                                            invisible="not output_file"/>
+                                    
+                                    <button name="action_download_errors" 
+                                            string="Download Error Report" 
+                                            type="object" 
+                                            icon="fa-download" 
+                                            class="btn-danger ms-2" 
+                                            invisible="not error_file"/>
+                                </div>
+                            </page>
+                        </notebook>
+                    </sheet>
+                    <footer invisible="state == 'done'">
+                        <button string="Cancel" class="btn-secondary" special="cancel"/>
+                    </footer>
+                    <footer invisible="state != 'done'">
+                        <button string="Close" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+    </data>
+</odoo>
